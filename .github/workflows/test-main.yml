@@ -35,7 +35,7 @@ on:
 env:
   BRANCH: ${{ github.event.ref || 'main'  }} # default branch for other trigger than 'workflow_dispatch'
   PREVIOUS_RUN_ID: ${{ inputs.previous-run-id || 'false' }} # default previous run id for other trigger than 'workflow_dispatch'
-  RETRY_COUNT: ${{ inputs.workflow-retry-count || 'false' }} # default retry count for other trigger than 'workflow_dispatch'
+  RETRY_COUNT: ${{ inputs.workflow-retry-count || '0' }} # default retry count for other trigger than 'workflow_dispatch'
   RETRY_LIMIT: 5
 
 
@@ -44,28 +44,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 'Read event inputs'
-        if: ${{ github.event.action == 'test-main'}}
-        run: |
-          echo "BRANCH=${{ github.event.branch }}" >> $GITHUB_ENV
-          echo "PREVIOUS_RUN_ID=${{ github.event.client_payload.previous-run-id }}" >> $GITHUB_ENV
-          echo "RETRY_COUNT=${{ github.event.client_payload.workflow-retry-count }}" >> $GITHUB_ENV
-          echo "ACTION: ${{ github.event.action }}"
-          echo "BRANCH: $BRANCH"
-          echo "PREVIOUS_RUN_ID: $PREVIOUS_RUN_ID"
-          echo "RETRY_COUNT: $RETRY_COUNT"
-
-
-      - name: test-failure
+      - name: 'Log env variables'
         run: |
           echo "env.BRANCH: ${{ env.BRANCH }}"
           echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
           echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
-          echo "Displaying all GitHub event parameters:"
-          for var in $(env | grep GITHUB_); do
-            echo "$var"
-          done
+
+      - name: 'Read event inputs'
+        if: ${{ github.event.action == 'test-main'}}
+        run: |
           echo "${{ toJson(github.event) }}"
+          echo "BRANCH=${{ github.event.branch }}" >> $GITHUB_ENV
+          echo "PREVIOUS_RUN_ID=${{ github.event.client_payload.previous-run-id }}" >> $GITHUB_ENV
+          echo "RETRY_COUNT=${{ github.event.client_payload.workflow-retry-count }}" >> $GITHUB_ENV
+          echo "ACTION: ${{ github.event.action }}"
+
+      - name: 'Log computetd env variables'
+        run: |
+          echo "env.BRANCH: ${{ env.BRANCH }}"
+          echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
+          echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
+
+      - name: 'test-failure'
+        run: |
           echo "Run in failure..."
           # Simulating a test failure for demonstration purposes
           exit 1
@@ -79,47 +80,47 @@ jobs:
       - name: 'Retry Check'
         id: check
         run: |
-          echo "Current workflow retry count: ${{ env.RETRY_COUNT }}"
-          echo "Workflow retry limit: ${{ env.RETRY_LIMIT }}"
+          echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
+          echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
           if [ ${{ env.RETRY_COUNT }} -lt ${{ env.RETRY_LIMIT }} ]; then
-            echo "Retry limit of ${{ env.RETRY_LIMIT }} not reached. Triggering workflow rerun."
-            echo "retryCount=$(( ${{ env.RETRY_COUNT }} + 1 ))" >> $GITHUB_OUTPUT
-            echo "isRetry=true" >> $GITHUB_OUTPUT
-            echo "runId=${{ github.run_id }}" >> $GITHUB_OUTPUT
+            echo "NEW_RETRY_COUNT=$(( ${{ env.RETRY_COUNT }} + 1 ))"
+            echo "Retry limit (${{ env.RETRY_LIMIT }}) not reached. Triggering the $NEW_RETRY_COUNT. rerun."
+            echo "Set new values..."
+            echo "PREVIOUS_RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+            echo "RETRY_COUNT=$NEW_RETRY_COUNT" >> $GITHUB_ENV
+            echo "PREVIOUS_RUN_ID to $PREVIOUS_RUN_ID"
+            echo "RETRY_COUNT to $RETRY_COUNT"
+          echo "TRIGGER_RETRY=true" >> $GITHUB_ENV
           else
             echo "Retry limit reached. Not retrying the workflow."
-            echo "run_retry=false" >> $GITHUB_OUTPUT
+            echo "TRIGGER_RETRY=false" >> $GITHUB_ENV
           fi
 
       - name: Checkout
-        if: ${{ steps.check.outputs.run_retry == 'true' }}
+        if: ${{ env.TRIGGER_RETRY == 'true' }}
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github/workflows/elion-e2e-test-rerun.yml
 
-    outputs:
-      isRetry: ${{ steps.check.outputs.isRetry }}
-      runId: ${{ steps.check.outputs.runId }}
-      retryCount: ${{ steps.check.outputs.retryCount }}
-
-  properties-logging:
+  logging:
     needs: [check-test-results, run-tests]
-    if: ${{ always() && contains(needs.run-tests.result,'failure') && needs.check-test-results.outputs.isRetry == 'true' }}
+    if: ${{ always() && env.TRIGGER_RETRY == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: 'Logging retry properties'
         run: |
-          echo "retryCount: ${{ needs.check-test-results.outputs.retryCount }}"
-          echo "isRetry: ${{ needs.check-test-results.outputs.isRetry }}"
-          echo "runId:${{ needs.check-test-results.outputs.runId }}"
+          echo "Trigger a new rerun..."
+          echo "env.BRANCH: ${{ env.BRANCH }}"
+          echo "env.RETRY_COUNT: ${{ env.PREVIOUS_RUN_ID }}"
+          echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
 
 
   rerun:
     needs: check-test-results
-    if: ${{ always() && needs.check-test-results.outputs.isRetry == 'true' }}
+    if: ${{ always() && env.TRIGGER_RETRY == 'true' }}
     uses: './.github/workflows/test-main-rerun.yml'
     with:
-      previous-run-id: ${{ needs.check-test-results.outputs.runId }}
-      workflow-retry-count: ${{ needs.check-test-results.outputs.retryCount }}
+      previous-run-id: ${{ env.PREVIOUS_RUN_ID }}
+      workflow-retry-count: ${{ env.PREVIOUS_RUN_ID }}
     secrets: inherit
