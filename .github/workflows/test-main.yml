@@ -1,0 +1,105 @@
+name: Test
+
+on:
+  repository_dispatch:
+    types: [ test-main ]
+    inputs:
+      previous-run-id:
+        description: "Previous run id to have the testing task retry failed tests"
+        required: true
+        type: string
+      workflow-retry-count:
+        type: string
+        description: "Counter for workflow retry attempts"
+        default: '1'
+
+  workflow_dispatch:
+    inputs:
+      previous-run-id:
+        description: "Previous run id to have the testing task retry failed tests"
+        required: false
+        type: string
+      workflow-retry-count:
+        type: choice
+        description: "Counter for workflow retry attempts"
+        default: '0'
+        options:
+          - '0'
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+
+env:
+  BRANCH: ${{ github.event.ref || 'main'  }} # default branch for other trigger than 'workflow_dispatch'
+  PREVIOUS_RUN_ID: ${{ inputs.previous-run-id || 'false' }} # default previous run id for other trigger than 'workflow_dispatch'
+  WORKFLOW_RETRY_COUNT: ${{ inputs.workflow-retry-count || 0 }}
+  WORKFLOW_RETRY_LIMIT: 5
+
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: test-failure
+        run: |
+          echo "Branch: ${{ env.BRANCH }}"
+          echo "Previous run id: ${{ env.PREVIOUS_RUN_ID }}"
+          echo "Previous run id: ${{ env.WORKFLOW_RETRY_COUNT }}"
+          echo "Run in failure..."
+          # Simulating a test failure for demonstration purposes
+          exit 1
+
+  check-test-results:
+    if: ${{ always() && contains(needs.run-tests.result,'failure') }}
+    needs: run-tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 'Retry Check'
+        id: check
+        run: |
+          echo "Current workflow retry count: ${{ env.WORKFLOW_RETRY_COUNT }}"
+          echo "Workflow retry limit: ${{ env.WORKFLOW_RETRY_LIMIT }}"
+          if [ ${{ env.WORKFLOW_RETRY_COUNT }} -lt ${{ env.WORKFLOW_RETRY_LIMIT }} ]; then
+            echo "Retry limit of ${{ env.WORKFLOW_RETRY_LIMIT }} not reached. Triggering workflow rerun."
+            echo "new_count=$(( ${{ env.WORKFLOW_RETRY_COUNT }} + 1 ))" >> $GITHUB_OUTPUT
+            echo "run_retry=true" >> $GITHUB_OUTPUT
+            echo "run_id=${{ github.run_id }}" >> $GITHUB_OUTPUT
+          else
+            echo "Retry limit reached. Not retrying the workflow."
+            echo "run_retry=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout
+        if: ${{ steps.check.outputs.run_retry == 'true' }}
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/workflows/elion-e2e-test-rerun.yml
+
+    outputs:
+      run_retry: ${{ steps.check.outputs.run_retry }}
+      run_id: ${{ steps.check.outputs.run_id }}
+      new_count: ${{ steps.check.outputs.new_count }}
+
+  loging:
+    needs: check-test-results
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Log final status'
+        run: |
+          echo "newCount: ${{ needs.check-test-results.outputs.new_count }}"
+          echo "runRetry: ${{ needs.check-test-results.outputs.run_retry }}"
+          echo "runId:${{ needs.check-test-results.outputs.run_id }}"
+
+  rerun:
+    needs: check-test-results
+    if: ${{ always() && needs.check-test-results.outputs.run_retry == 'true' }}
+    uses: './.github/workflows/test-main-rerun.yml'
+    with:
+      previous-run-id: ${{ needs.check-test-results.outputs.run_id }}
+      workflow-retry-count: ${{ needs.check-test-results.outputs.new_count }}
+    secrets: inherit

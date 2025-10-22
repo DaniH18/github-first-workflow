@@ -1,0 +1,24 @@
+name: Test - Rerun
+
+on:
+  workflow_call:
+    inputs:
+      previous-run-id:
+        description: "Previous run id to have the testing task retry failed tests"
+        required: true
+        type: string
+      workflow-retry-count:
+        description: "Counter for workflow retry attempts"
+        type: string
+        required: true
+
+jobs:
+  elion-e2e-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 'Dispatch rerun'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          event-type: test-main
+          client-payload: '{ "previous-run-id": "${{ inputs.previous-run-id }}", "workflow-retry-count":"${{ inputs.workflow-retry-count }}" }'
