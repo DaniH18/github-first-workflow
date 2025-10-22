@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 'Log env variables'
+      - name: 'Log inputs env variables'
         run: |
           echo "env.BRANCH: ${{ env.BRANCH }}"
           echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
@@ -59,7 +59,7 @@ jobs:
           echo "RETRY_COUNT=${{ github.event.client_payload.workflow-retry-count }}" >> $GITHUB_ENV
           echo "ACTION: ${{ github.event.action }}"
 
-      - name: 'Log computetd env variables'
+      - name: 'Log computed env variables'
         run: |
           echo "env.BRANCH: ${{ env.BRANCH }}"
           echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
@@ -83,13 +83,14 @@ jobs:
           echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
           echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
           if [ ${{ env.RETRY_COUNT }} -lt ${{ env.RETRY_LIMIT }} ]; then
-            echo "NEW_RETRY_COUNT=$(( ${{ env.RETRY_COUNT }} + 1 ))"
+            NEW_RETRY_COUNT=$(( ${{ env.RETRY_COUNT }} + 1 ))
+            NEW_PREVIOUS_RUN_ID=${{ github.run_id }}
             echo "Retry limit (${{ env.RETRY_LIMIT }}) not reached. Triggering the $NEW_RETRY_COUNT. rerun."
             echo "Set new values..."
-            echo "PREVIOUS_RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+            echo "PREVIOUS_RUN_ID to $NEW_PREVIOUS_RUN_ID"
+            echo "RETRY_COUNT to $NEW_RETRY_COUNT"
+            echo "PREVIOUS_RUN_ID=$NEW_PREVIOUS_RUN_ID" >> $GITHUB_ENV
             echo "RETRY_COUNT=$NEW_RETRY_COUNT" >> $GITHUB_ENV
-            echo "PREVIOUS_RUN_ID to $PREVIOUS_RUN_ID"
-            echo "RETRY_COUNT to $RETRY_COUNT"
             echo "triggerRetry=true" >> $GITHUB_OUTPUT
           else
             echo "Retry limit reached. Not retrying the workflow."
@@ -101,6 +102,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github/workflows/elion-e2e-test-rerun.yml
+
+    outputs:
+      triggerRetry: ${{ steps.check.outputs.triggerRetry }}
 
   logging:
     needs: [check-tests, run-tests]
