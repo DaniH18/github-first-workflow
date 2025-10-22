@@ -1,8 +1,7 @@
 name: Test - Rerun
 
 on:
-  repository_dispatch:
-    types: [ test-main-rerun ]
+  workflow_call:
     inputs:
       previous-run-id:
         description: "Previous run id to have the testing task retry failed tests"

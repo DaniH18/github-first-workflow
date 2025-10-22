@@ -1,6 +1,24 @@
 name: Test
 
 on:
+  workflow_dispatch:
+    inputs:
+      previous-run-id:
+        description: "Previous run id to have the testing task retry failed tests"
+        required: false
+        type: string
+      workflow-retry-count:
+        type: choice
+        description: "Counter for workflow retry attempts"
+        default: '0'
+        options:
+          - '0'
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+          -
   repository_dispatch:
     types: [ test-main-1, test-main-2, test-main-3, test-main-4, test-main-5 ]
     inputs:
@@ -19,24 +37,7 @@ on:
           - '3'
           - '4'
           - '5'
-
-  workflow_dispatch:
-    inputs:
-      previous-run-id:
-        description: "Previous run id to have the testing task retry failed tests"
-        required: false
-        type: string
-      workflow-retry-count:
-        type: choice
-        description: "Counter for workflow retry attempts"
-        default: '0'
-        options:
-          - '0'
-          - '1'
-          - '2'
-          - '3'
-          - '4'
-          - '5'
+          -
 
 env:
   BRANCH: ${{ github.event.ref || 'main'  }} # default branch for other trigger than 'workflow_dispatch'
@@ -113,7 +114,7 @@ jobs:
   rerun:
     needs: check-test-results
     if: ${{ always() && needs.check-test-results.outputs.run_retry == 'true' }}
-    uses: './.github/workflows/test-main-middle.yml'
+    uses: './.github/workflows/test-main-rerun.yml'
     with:
       previous-run-id: ${{ needs.check-test-results.outputs.run_id }}
       workflow-retry-count: ${{ needs.check-test-results.outputs.new_count }}
