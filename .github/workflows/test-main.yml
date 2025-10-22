@@ -143,9 +143,9 @@ jobs:
 
   rerun:
     needs: check-test-results
-    if: ${{ always() && needs.check-test-results.outputs.run_retry == 'true' }}
+    if: ${{ always() && needs.check-test-results.outputs.isRetry == 'true' }}
     uses: './.github/workflows/test-main-rerun.yml'
     with:
-      previous-run-id: ${{ needs.check-test-results.outputs.run_id }}
-      workflow-retry-count: ${{ needs.check-test-results.outputs.new_count }}
+      previous-run-id: ${{ needs.check-test-results.outputs.runId }}
+      workflow-retry-count: ${{ needs.check-test-results.outputs.retryCount }}
     secrets: inherit
