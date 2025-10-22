@@ -77,11 +77,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 'Retry Check'
+      - name: 'Read "test-main" event inputs'
+        if: ${{ contains(github.event.action,'test-main') }}
+        run: |
+          echo "${{ toJson(github.event) }}"
+          echo "Event consumend: ${{ github.event.action }}"
+          echo "BRANCH=${{ github.event.branch }}" >> $GITHUB_ENV
+          echo "PREVIOUS_RUN_ID=${{ github.event.client_payload.previous-run-id }}" >> $GITHUB_ENV
+          echo "RETRY_COUNT=${{ github.event.client_payload.workflow-retry-count }}" >> $GITHUB_ENV   
+
+      - name: 'Check Retry'
         id: check
         run: |
-          echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
-          echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
+          echo "BRANCH: ${{ env.BRANCH }}"
+          echo "PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
+          echo "RETRY_COUNT: ${{ env.RETRY_COUNT }}"
+          echo "RETRY_LIMIT: ${{ env.RETRY_LIMIT }}"
           if [ ${{ env.RETRY_COUNT }} -lt ${{ env.RETRY_LIMIT }} ]; then
             NEW_RETRY_COUNT=$(( ${{ env.RETRY_COUNT }} + 1 ))
             NEW_PREVIOUS_RUN_ID=${{ github.run_id }}
