@@ -22,21 +22,15 @@ on:
   repository_dispatch:
     types: [ test-main-1, test-main-2, test-main-3, test-main-4, test-main-5 ]
     inputs:
-      previousRunId:
+      previous-run-id:
         description: "Previous run id to have the testing task retry failed tests"
-        required: true
         type: string
-      workflowRetryCount:
-        type: choice
         required: true
+      workflow-retry-count:
         description: "Counter for workflow retry attempts"
-        default: '1'
-        options:
-          - '1'
-          - '2'
-          - '3'
-          - '4'
-          - '5'
+        type: string
+        required: true
+
 
 env:
   BRANCH: ${{ github.event.ref || 'main'  }} # default branch for other trigger than 'workflow_dispatch'
@@ -50,6 +44,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: 'Download e2e-retry-props'
+        if: ${{ env.PREVIOUS_RUN_ID != 'false' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-retry-props
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREVIOUS_RUN_ID }}
+          path: e2e-retry-props.txt
+
+      - name: 'Read e2e retry props'
+        if: ${{ env.PREVIOUS_RUN_ID != 'false' }}
+        run: |
+          echo "Reading e2e-retry-props.txt file..."
+          cat e2e-retry-props.txt
+          echo "Setting environment variables from e2e-retry-props.txt..."
+          while IFS='=' read -r key value; do
+            echo "Setting $key to $value"
+            echo "$key=$value" >> $GITHUB_ENV
+          done < e2e-retry-props.txt
+
       - name: test-failure
         run: |
           echo "env.BRANCH: ${{ env.BRANCH }}"
@@ -63,6 +78,7 @@ jobs:
           for var in $(env | grep GITHUB_); do
             echo "$var"
           done
+          echo "${{ toJson(github.event) }}"
           echo "Run in failure..."
           # Simulating a test failure for demonstration purposes
           exit 1
@@ -80,9 +96,9 @@ jobs:
           echo "Workflow retry limit: ${{ env.WORKFLOW_RETRY_LIMIT }}"
           if [ ${{ env.WORKFLOW_RETRY_COUNT }} -lt ${{ env.WORKFLOW_RETRY_LIMIT }} ]; then
             echo "Retry limit of ${{ env.WORKFLOW_RETRY_LIMIT }} not reached. Triggering workflow rerun."
-            echo "new_count=$(( ${{ env.WORKFLOW_RETRY_COUNT }} + 1 ))" >> $GITHUB_OUTPUT
-            echo "run_retry=true" >> $GITHUB_OUTPUT
-            echo "run_id=${{ github.run_id }}" >> $GITHUB_OUTPUT
+            echo "retryCount=$(( ${{ env.WORKFLOW_RETRY_COUNT }} + 1 ))" >> $GITHUB_OUTPUT
+            echo "isRetry=true" >> $GITHUB_OUTPUT
+            echo "runId=${{ github.run_id }}" >> $GITHUB_OUTPUT
           else
             echo "Retry limit reached. Not retrying the workflow."
             echo "run_retry=false" >> $GITHUB_OUTPUT
@@ -95,20 +111,35 @@ jobs:
           sparse-checkout: .github/workflows/elion-e2e-test-rerun.yml
 
     outputs:
-      run_retry: ${{ steps.check.outputs.run_retry }}
-      run_id: ${{ steps.check.outputs.run_id }}
-      new_count: ${{ steps.check.outputs.new_count }}
+      isRetry: ${{ steps.check.outputs.isRetry }}
+      runId: ${{ steps.check.outputs.runId }}
+      retryCount: ${{ steps.check.outputs.retryCount }}
 
-  loging:
-    needs: check-test-results
-    if: ${{ always() }}
+  properties-logging:
+    needs: [check-test-results, run-tests]
+    if: ${{ always() && contains(needs.run-tests.result,'failure') && needs.check-test-results.outputs.isRetry == 'true' }}
     runs-on: ubuntu-latest
+
     steps:
-      - name: 'Log final status'
+      - name: 'Logging retry properties'
         run: |
-          echo "newCount: ${{ needs.check-test-results.outputs.new_count }}"
-          echo "runRetry: ${{ needs.check-test-results.outputs.run_retry }}"
-          echo "runId:${{ needs.check-test-results.outputs.run_id }}"
+          echo "retryCount: ${{ needs.check-test-results.outputs.retryCount }}"
+          echo "isRetry: ${{ needs.check-test-results.outputs.isRetry }}"
+          echo "runId:${{ needs.check-test-results.outputs.runId }}"
+
+      - name: 'Write e2e retry props to file'
+        run: |
+          echo "RETRY_COUNT=${{ needs.check-test-results.outputs.retryCount }}" >> e2e-retry-props.txt
+          echo "IS_RETRY=${{ needs.check-test-results.outputs.isRetry }}" >> e2e-retry-props.txt
+          echo "PREVIOUS_RUN_ID=${{ needs.check-test-results.outputs.runId }}" >> e2e-retry-props.txt
+          echo "BRANCH=${{ github.event.ref }}" >> e2e-retry-props.txt
+
+      - name: 'Upload retry properties artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-retry-props
+          path: e2e-retry-props.txt
+          overwrite: true
 
   rerun:
     needs: check-test-results
