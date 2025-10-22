@@ -116,11 +116,11 @@ jobs:
           echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
 
 
-  rerun:
-    needs: check-tests
-    if: ${{ always() && needs.check-tests.outputs.triggerRetry == 'true' }}
-    uses: './.github/workflows/test-main-rerun.yml'
-    with:
-      previous-run-id: ${{ env.PREVIOUS_RUN_ID }}
-      workflow-retry-count: ${{ env.RETRY_COUNT }}
-    secrets: inherit
+#  rerun:
+#    needs: check-tests
+#    if: ${{ always() && needs.check-tests.outputs.triggerRetry == 'true' }}
+#    uses: './.github/workflows/test-main-rerun.yml'
+#    with:
+#      previous-run-id: ${{ env.PREVIOUS_RUN_ID }}
+#      workflow-retry-count: ${{ env.RETRY_COUNT }}
+#    secrets: inherit
