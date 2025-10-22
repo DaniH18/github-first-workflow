@@ -26,6 +26,6 @@ jobs:
       - name: 'Dispatch rerun'
         uses: peter-evans/repository-dispatch@v4
         with:
-          event-type: 'test-main-${{ inputs.workflow-retry-count }}'
+          event-type: test-main
           client-payload: '{ "previous-run-id": "${{ inputs.previous-run-id }}", "workflow-retry-count":"${{ inputs.workflow-retry-count }}" }'
           token: '${{ secrets.FINE_REPOSITORY_DISPATCH_TOKEN }}'
