@@ -18,7 +18,7 @@ on:
           - '3'
           - '4'
           - '5'
-          -
+
   repository_dispatch:
     types: [ test-main-1, test-main-2, test-main-3, test-main-4, test-main-5 ]
     inputs:
@@ -37,7 +37,6 @@ on:
           - '3'
           - '4'
           - '5'
-          -
 
 env:
   BRANCH: ${{ github.event.ref || 'main'  }} # default branch for other trigger than 'workflow_dispatch'
