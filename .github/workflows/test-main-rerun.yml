@@ -17,6 +17,8 @@ jobs:
   test-main:
     name: '${{ inputs.workflow-retry-count }}. Test - Rerun'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Logging inputs
@@ -29,4 +31,4 @@ jobs:
         with:
           event-type: 'test-main-${{ inputs.workflow-retry-count }}'
           client-payload: '{ "previousRunId": "${{ inputs.previous-run-id }}", "workflowRetryCount":"${{ inputs.workflow-retry-count }}" }'
-          token: '${{ secrets.REPOSITORY_DISPATCH_TOKEN }}'
+#          token: '${{ secrets.REPOSITORY_DISPATCH_TOKEN }}'
