@@ -20,7 +20,7 @@ on:
           - '5'
 
   repository_dispatch:
-    types: [test-main-1, test-main-2, test-main-3, test-main-4, test-main-5]
+    types: [test-rerun-1, test-rerun-2, test-rerun-3, test-rerun-4, test-rerun-5]
     inputs:
       previous-run-id:
         description: "Previous run id to have the testing task retry failed tests"
@@ -63,7 +63,7 @@ jobs:
 
     steps:
       - name: 'Read "test-main" event inputs'
-        if: ${{ contains(github.event.action,'test-main') }}
+        if: ${{ contains(github.event.action,'test-rerun') }}
         run: |
           echo "${{ toJson(github.event) }}"
           echo "Event consumend: ${{ github.event.action }}"
