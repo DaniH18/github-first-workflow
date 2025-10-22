@@ -89,8 +89,8 @@ jobs:
             echo "Set new values..."
             echo "PREVIOUS_RUN_ID to $NEW_PREVIOUS_RUN_ID"
             echo "RETRY_COUNT to $NEW_RETRY_COUNT"
-            echo "PREVIOUS_RUN_ID=$NEW_PREVIOUS_RUN_ID" >> $GITHUB_ENV
-            echo "RETRY_COUNT=$NEW_RETRY_COUNT" >> $GITHUB_ENV
+            echo "previousRunId=$NEW_PREVIOUS_RUN_ID" >> $GITHUB_OUTPUT
+            echo "retryCount=$NEW_RETRY_COUNT" >> $GITHUB_OUTPUT
             echo "triggerRetry=true" >> $GITHUB_OUTPUT
           else
             echo "Retry limit reached. Not retrying the workflow."
@@ -105,6 +105,8 @@ jobs:
 
     outputs:
       triggerRetry: ${{ steps.check.outputs.triggerRetry }}
+      previousRunId: ${{ steps.check.outputs.previousRunId }}
+      retryCount: ${{ steps.check.outputs.retryCount }}
 
   logging:
     needs: [check-tests, run-tests]
@@ -114,17 +116,17 @@ jobs:
     steps:
       - name: 'Logging retry properties'
         run: |
-          echo "Trigger a new rerun..."
-          echo "env.BRANCH: ${{ env.BRANCH }}"
-          echo "env.RETRY_COUNT: ${{ env.PREVIOUS_RUN_ID }}"
-          echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
+          echo "Trigger a new rerun with..."
+          echo "branch: ${{ env.BRANCH }}"
+          echo "retryCount: ${{ needs.check-tests.outputs.retryCount }}"
+          echo "previousRunId: ${{ needs.check-tests.outputs.previousRunId }}"
 
 
-#  rerun:
-#    needs: check-tests
-#    if: ${{ always() && needs.check-tests.outputs.triggerRetry == 'true' }}
-#    uses: './.github/workflows/test-main-rerun.yml'
-#    with:
-#      previous-run-id: ${{ env.PREVIOUS_RUN_ID }}
-#      workflow-retry-count: ${{ env.RETRY_COUNT }}
-#    secrets: inherit
+  rerun:
+    needs: check-tests
+    if: ${{ always() && needs.check-tests.outputs.triggerRetry == 'true' }}
+    uses: './.github/workflows/test-main-rerun.yml'
+    with:
+      previous-run-id: ${{ needs.check-tests.outputs.previousRunId }}
+      workflow-retry-count: ${{ needs.check-tests.outputs.retryCount }}
+    secrets: inherit
