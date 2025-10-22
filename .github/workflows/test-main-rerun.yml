@@ -18,6 +18,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Logging inputs
+        run: |
+          echo "Previous run id: ${{ inputs.previous-run-id }}"
+          echo "Workflow retry count: ${{ inputs.workflow-retry-count }}"
+
       - name: 'Dispatch rerun'
         uses: peter-evans/repository-dispatch@v4
         with:
