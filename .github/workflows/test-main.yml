@@ -50,18 +50,19 @@ jobs:
           echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
           echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
 
-      - name: 'create-test-success'
-        if: ${{ contains(github.event.action,'test-rerun-3') }}
+      - name: 'create-test-result'
+        if: ${{ github.event.action != 'test-rerun-3' }}
         run: |
-          echo "Run in success..."
-          # Simulating a test success for demonstration purposes
-          exit 0
-
-      - name: 'create-test-failure'
-        run: |
-          echo "Run in failure..."
-          # Simulating a test failure for demonstration purposes
-          exit 1
+          if [ ${{ contains(github.event.action,'test-rerun-3') }} ]; then
+             echo "Run in success..."
+            # Simulating a test success for demonstration purposes
+            exit 0
+          else
+            echo "Run in failure..."
+            # Simulating a test failure for demonstration purposes
+            exit 1
+          fi
+          
 
   check-tests:
     if: ${{ always() && contains(needs.run-tests.result,'failure') }}
