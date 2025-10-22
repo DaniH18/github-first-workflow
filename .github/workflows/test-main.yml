@@ -122,5 +122,5 @@ jobs:
     uses: './.github/workflows/test-main-rerun.yml'
     with:
       previous-run-id: ${{ env.PREVIOUS_RUN_ID }}
-      workflow-retry-count: ${{ env.PREVIOUS_RUN_ID }}
+      workflow-retry-count: ${{ env.RETRY_COUNT }}
     secrets: inherit
