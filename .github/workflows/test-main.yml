@@ -46,13 +46,14 @@ jobs:
     steps:
       - name: 'Log inputs env variables'
         run: |
+          echo "${{ toJson(github.event) }}"
           echo "env.BRANCH: ${{ env.BRANCH }}"
           echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
           echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
 
       - name: 'create-test-result'
         run: |
-          if [[ ${{ github.event.action }} == "test-rerun-3" ]]; then
+          if [[ "${{ github.event.action }}" == "test-rerun-3" ]]; then
             echo "Run in success..."
             # Simulating a test success for demonstration purposes
             exit 0
