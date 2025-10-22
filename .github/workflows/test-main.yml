@@ -9,9 +9,16 @@ on:
         required: true
         type: string
       workflow-retry-count:
-        type: string
+        type: choice
+        required: true
         description: "Counter for workflow retry attempts"
         default: '1'
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
 
   workflow_dispatch:
     inputs:
@@ -34,7 +41,7 @@ on:
 env:
   BRANCH: ${{ github.event.ref || 'main'  }} # default branch for other trigger than 'workflow_dispatch'
   PREVIOUS_RUN_ID: ${{ inputs.previous-run-id || 'false' }} # default previous run id for other trigger than 'workflow_dispatch'
-  WORKFLOW_RETRY_COUNT: ${{ inputs.workflow-retry-count || 0 }}
+  WORKFLOW_RETRY_COUNT: ${{ inputs.workflow-retry-count }} # default retry count for other trigger than 'workflow_dispatch'
   WORKFLOW_RETRY_LIMIT: 5
 
 
@@ -47,7 +54,7 @@ jobs:
         run: |
           echo "Branch: ${{ env.BRANCH }}"
           echo "Previous run id: ${{ env.PREVIOUS_RUN_ID }}"
-          echo "Previous run id: ${{ env.WORKFLOW_RETRY_COUNT }}"
+          echo "Retry count: ${{ env.WORKFLOW_RETRY_COUNT }}"
           echo "Run in failure..."
           # Simulating a test failure for demonstration purposes
           exit 1
