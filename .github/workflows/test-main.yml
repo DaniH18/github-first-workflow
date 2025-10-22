@@ -50,21 +50,6 @@ jobs:
           echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
           echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
 
-      - name: 'Read event inputs'
-        if: ${{ contains(github.event.action,'test-main') }}
-        run: |
-          echo "${{ toJson(github.event) }}"
-          echo "BRANCH=${{ github.event.branch }}" >> $GITHUB_ENV
-          echo "PREVIOUS_RUN_ID=${{ github.event.client_payload.previous-run-id }}" >> $GITHUB_ENV
-          echo "RETRY_COUNT=${{ github.event.client_payload.workflow-retry-count }}" >> $GITHUB_ENV
-          echo "ACTION: ${{ github.event.action }}"
-
-      - name: 'Log computed env variables'
-        run: |
-          echo "env.BRANCH: ${{ env.BRANCH }}"
-          echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
-          echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
-
       - name: 'test-failure'
         run: |
           echo "Run in failure..."
