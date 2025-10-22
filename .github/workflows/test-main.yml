@@ -20,7 +20,7 @@ on:
           - '5'
 
   repository_dispatch:
-    types: [test-main]
+    types: [test-main-1, test-main-2, test-main-3, test-main-4, test-main-5]
     inputs:
       previous-run-id:
         description: "Previous run id to have the testing task retry failed tests"
@@ -51,7 +51,7 @@ jobs:
           echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
 
       - name: 'Read event inputs'
-        if: ${{ github.event.action == 'test-main'}}
+        if: ${{ contains(github.event.action,'test-main') }}
         run: |
           echo "${{ toJson(github.event) }}"
           echo "BRANCH=${{ github.event.branch }}" >> $GITHUB_ENV
@@ -71,7 +71,7 @@ jobs:
           # Simulating a test failure for demonstration purposes
           exit 1
 
-  check-test-results:
+  check-tests:
     if: ${{ always() && contains(needs.run-tests.result,'failure') }}
     needs: run-tests
     runs-on: ubuntu-latest
@@ -90,21 +90,21 @@ jobs:
             echo "RETRY_COUNT=$NEW_RETRY_COUNT" >> $GITHUB_ENV
             echo "PREVIOUS_RUN_ID to $PREVIOUS_RUN_ID"
             echo "RETRY_COUNT to $RETRY_COUNT"
-          echo "TRIGGER_RETRY=true" >> $GITHUB_ENV
+            echo "triggerRetry=true" >> $GITHUB_OUTPUT
           else
             echo "Retry limit reached. Not retrying the workflow."
-            echo "TRIGGER_RETRY=false" >> $GITHUB_ENV
+            echo "triggerRetry=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Checkout
-        if: ${{ env.TRIGGER_RETRY == 'true' }}
+        if: ${{ steps.check.outputs.triggerRetry == 'true' }}
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github/workflows/elion-e2e-test-rerun.yml
 
   logging:
-    needs: [check-test-results, run-tests]
-    if: ${{ always() && env.TRIGGER_RETRY == 'true' }}
+    needs: [check-tests, run-tests]
+    if: ${{ always() && needs.check-tests.outputs.triggerRetry == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -117,8 +117,8 @@ jobs:
 
 
   rerun:
-    needs: check-test-results
-    if: ${{ always() && env.TRIGGER_RETRY == 'true' }}
+    needs: check-tests
+    if: ${{ always() && needs.check-tests.outputs.triggerRetry == 'true' }}
     uses: './.github/workflows/test-main-rerun.yml'
     with:
       previous-run-id: ${{ env.PREVIOUS_RUN_ID }}
