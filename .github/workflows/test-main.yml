@@ -50,7 +50,14 @@ jobs:
           echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
           echo "env.RETRY_COUNT: ${{ env.RETRY_COUNT }}"
 
-      - name: 'test-failure'
+      - name: 'create-test-success'
+        if: ${{ contains(github.event.action,'test-rerun-3') }}
+        run: |
+          echo "Run in success..."
+          # Simulating a test success for demonstration purposes
+          exit 0
+
+      - name: 'create-test-failure'
         run: |
           echo "Run in failure..."
           # Simulating a test failure for demonstration purposes
@@ -106,7 +113,7 @@ jobs:
 
   logging:
     needs: [check-tests, run-tests]
-    if: ${{ always() && needs.check-tests.outputs.triggerRetry == 'true' }}
+    if: ${{ always() && contains(needs.run-tests.result,'failure') && needs.check-tests.outputs.triggerRetry == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -128,13 +135,3 @@ jobs:
           event-type: 'test-rerun-${{ needs.check-tests.outputs.retryCount }}'
           client-payload: '{ "previous-run-id": "${{ needs.check-tests.outputs.previousRunId  }}", "workflow-retry-count":"${{ needs.check-tests.outputs.retryCount }}" }'
           token: '${{ secrets.FINE_REPOSITORY_DISPATCH_TOKEN }}'
-
-
-#  rerun:
-#    needs: check-tests
-#    if: ${{ always() && needs.check-tests.outputs.triggerRetry == 'true' }}
-#    uses: './.github/workflows/test-main-rerun.yml'
-#    with:
-#      previous-run-id: ${{ needs.check-tests.outputs.previousRunId }}
-#      workflow-retry-count: ${{ needs.check-tests.outputs.retryCount }}
-#    secrets: inherit
