@@ -82,14 +82,14 @@ jobs:
       - name: 'Check Retry'
         id: check
         run: |
-          echo "BRANCH: ${{ env.BRANCH }}"
-          echo "PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
-          echo "RETRY_COUNT: ${{ env.RETRY_COUNT }}"
-          echo "RETRY_LIMIT: ${{ env.RETRY_LIMIT }}"
-          if [ ${{ env.RETRY_COUNT }} -lt ${{ env.RETRY_LIMIT }} ]; then
-            NEW_RETRY_COUNT=$(( ${{ env.RETRY_COUNT }} + 1 ))
+          echo "BRANCH: $BRANCH"
+          echo "PREVIOUS_RUN_ID: $PREVIOUS_RUN_ID"
+          echo "RETRY_COUNT: $ETRY_COUNT"
+          echo "RETRY_LIMIT: $RETRY_LIMIT"
+          if [ $RETRY_COUNT -lt $RETRY_LIMIT ]; then
+            NEW_RETRY_COUNT=$(( $RETRY_COUNT + 1 ))
             NEW_PREVIOUS_RUN_ID=${{ github.run_id }}
-            echo "Retry limit (${{ env.RETRY_LIMIT }}) not reached. Triggering the $NEW_RETRY_COUNT. rerun."
+            echo "Retry limit ($RETRY_LIMIT) not reached. Triggering the $NEW_RETRY_COUNT. rerun."
             echo "Set new values..."
             echo "PREVIOUS_RUN_ID to $NEW_PREVIOUS_RUN_ID"
             echo "RETRY_COUNT to $NEW_RETRY_COUNT"
