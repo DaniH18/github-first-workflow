@@ -2,7 +2,7 @@ name: Test
 
 on:
   repository_dispatch:
-    types: [ test-main ]
+    types: [ test-main-1, test-main-2, test-main-3, test-main-4, test-main-5 ]
     inputs:
       previousRunId:
         description: "Previous run id to have the testing task retry failed tests"
@@ -52,9 +52,17 @@ jobs:
     steps:
       - name: test-failure
         run: |
-          echo "Branch: ${{ env.BRANCH }}"
-          echo "Previous run id: ${{ env.PREVIOUS_RUN_ID }}"
-          echo "Retry count: ${{ env.WORKFLOW_RETRY_COUNT }}"
+          echo "env.BRANCH: ${{ env.BRANCH }}"
+          echo "env.PREVIOUS_RUN_ID: ${{ env.PREVIOUS_RUN_ID }}"
+          echo "env.WORKFLOW_RETRY_COUNT: ${{ env.WORKFLOW_RETRY_COUNT }}"
+          echo "inputs.previous-run-id: ${{ inputs.previous-run-id }}"
+          echo "inputs.workflow-retry-count: ${{ inputs.workflow-retry-count }}"
+          echo "inputs.previousRunId: ${{ inputs.previousRunId }}"
+          echo "inputs.workflowRetryCount: ${{ inputs.workflowRetryCount }}"
+          echo "Displaying all GitHub event parameters:"
+          for var in $(env | grep GITHUB_); do
+            echo "$var"
+          done
           echo "Run in failure..."
           # Simulating a test failure for demonstration purposes
           exit 1
