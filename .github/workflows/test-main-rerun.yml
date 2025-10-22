@@ -16,8 +16,6 @@ jobs:
   test-main:
     name: '${{ inputs.workflow-retry-count }}. Test - Rerun'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Logging inputs
