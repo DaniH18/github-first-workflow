@@ -4,11 +4,11 @@ on:
   repository_dispatch:
     types: [ test-main ]
     inputs:
-      previous-run-id:
+      previousRunId:
         description: "Previous run id to have the testing task retry failed tests"
         required: true
         type: string
-      workflow-retry-count:
+      workflowRetryCount:
         type: choice
         required: true
         description: "Counter for workflow retry attempts"
@@ -40,8 +40,8 @@ on:
 
 env:
   BRANCH: ${{ github.event.ref || 'main'  }} # default branch for other trigger than 'workflow_dispatch'
-  PREVIOUS_RUN_ID: ${{ inputs.previous-run-id || 'false' }} # default previous run id for other trigger than 'workflow_dispatch'
-  WORKFLOW_RETRY_COUNT: ${{ inputs.workflow-retry-count }} # default retry count for other trigger than 'workflow_dispatch'
+  PREVIOUS_RUN_ID: ${{ inputs.previous-run-id || inputs.previousRunId || 'false' }} # default previous run id for other trigger than 'workflow_dispatch'
+  WORKFLOW_RETRY_COUNT: ${{ inputs.workflow-retry-count || inputs.previousRunId }} # default retry count for other trigger than 'workflow_dispatch'
   WORKFLOW_RETRY_LIMIT: 5
 
 
