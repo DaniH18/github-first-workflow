@@ -65,8 +65,8 @@ jobs:
           
 
   check-tests:
-    if: ${{ always() && contains(needs.run-tests.result,'failure') }}
     needs: run-tests
+    if: ${{ always() && contains(needs.run-tests.result,'failure') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -84,7 +84,7 @@ jobs:
         run: |
           echo "BRANCH: $BRANCH"
           echo "PREVIOUS_RUN_ID: $PREVIOUS_RUN_ID"
-          echo "RETRY_COUNT: $ETRY_COUNT"
+          echo "RETRY_COUNT: $RETRY_COUNT"
           echo "RETRY_LIMIT: $RETRY_LIMIT"
           if [ $RETRY_COUNT -lt $RETRY_LIMIT ]; then
             NEW_RETRY_COUNT=$(( $RETRY_COUNT + 1 ))
@@ -135,4 +135,4 @@ jobs:
         with:
           event-type: 'test-rerun-${{ needs.check-tests.outputs.retryCount }}'
           client-payload: '{ "previous-run-id": "${{ needs.check-tests.outputs.previousRunId  }}", "workflow-retry-count":"${{ needs.check-tests.outputs.retryCount }}" }'
-          token: '${{ secrets.FINE_REPOSITORY_DISPATCH_TOKEN }}'
+          token: '${{ secrets.GITHUB_TOKEN }}'
