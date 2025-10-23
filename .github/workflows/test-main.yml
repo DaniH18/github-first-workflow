@@ -129,6 +129,9 @@ jobs:
     needs: check-tests
     if: ${{ always() && needs.check-tests.outputs.triggerRetry == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - name: 'Dispatch rerun'
         uses: peter-evans/repository-dispatch@v4
